@@ -1,0 +1,22 @@
+{
+	"name": "hxdr_libs",
+	"url": "https://github.com/MAJigsaw77/hxdr_libs",
+	"license": "MIT",
+	"tags": [
+		"cpp",
+		"haxe",
+		"lime",
+		"audio",
+		"dr_libs"
+	],
+	"description": "A Haxe/Lime library for @:native audio decoding using dr_libs.",
+	"version": "1.0.0",
+	"releasenote": "First release.",
+	"contributors": [
+		"MAJigsaw77"
+	],
+	"classPath": "source",
+	"dependencies": {
+		"hxcpp": ""
+	}
+}

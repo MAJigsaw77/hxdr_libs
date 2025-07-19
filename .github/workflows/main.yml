@@ -1,0 +1,141 @@
+name: Testing
+on:
+  push:
+    branches: main
+    paths-ignore:
+      - 'LICENSE'
+      - 'README.md'
+      - 'haxelib.json'
+      - 'hxformat.json'
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  Desktop:
+    runs-on: ${{matrix.os}}-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows, macos, ubuntu]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.3.7
+
+      - name: Install Dependencies
+        if: matrix.os == 'ubuntu'
+        run: sudo apt-get update && sudo apt-get install libvlc-dev libvlccore-dev vlc-bin vlc
+
+      - name: Install Haxe Libraries
+        run: |
+          haxelib install lime --quiet --never --skip-dependencies
+          haxelib dev hxdr_libs .
+
+      - name: Setup hxcpp Library
+        run: haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --quiet --never --skip-dependencies && haxelib run lime rebuild hxcpp
+
+      - name: List Installed Haxe Libraries
+        run: haxelib list
+
+      - name: Build Windows
+        if: matrix.os == 'windows'
+        run: cd example && haxelib run lime build windows
+
+      - name: Upload Windows Artifact
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@main
+        with:
+          name: windowsBuild
+          path: example/export/windows/bin
+          if-no-files-found: warn
+
+      - name: Build MacOS
+        if: matrix.os == 'macos'
+        run: cd example && haxelib run lime build mac && tar -zcf build.tar.gz -C export/macos/bin .
+
+      - name: Upload MacOS Artifact
+        if: matrix.os == 'macos'
+        uses: actions/upload-artifact@main
+        with:
+          name: macBuild
+          path: example/build.tar.gz
+          if-no-files-found: warn
+
+      - name: Build Linux
+        if: matrix.os == 'ubuntu'
+        run: cd example && haxelib run lime build linux && tar -zcf build.tar.gz -C export/linux/bin .
+
+      - name: Upload Linux Artifact
+        if: matrix.os == 'ubuntu'
+        uses: actions/upload-artifact@main
+        with:
+          name: linuxBuild
+          path: example/build.tar.gz
+          if-no-files-found: warn
+  Mobile:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [android, ios]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@master
+        with:
+          haxe-version: 4.3.7
+
+      - name: Install Haxe Libraries
+        run: |
+          haxelib install lime --quiet --never --skip-dependencies
+          haxelib dev hxdr_libs .
+
+      - name: Setup hxcpp Library
+        run: haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git --quiet --never --skip-dependencies && haxelib run lime rebuild hxcpp
+
+      - name: List Installed Haxe Libraries
+        run: haxelib list
+
+      - name: Configure Android Environment
+        if: matrix.os == 'android'
+        run: |
+          haxelib run lime config ANDROID_SDK $ANDROID_HOME
+          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
+          haxelib run lime config JAVA_HOME $JAVA_HOME_11_arm64
+          haxelib run lime config ANDROID_SETUP true
+
+      - name: Build Android
+        if: matrix.os == 'android'
+        run: cd example && haxelib run lime build android
+
+      - name: Upload Android Artifact
+        if: matrix.os == 'android'
+        uses: actions/upload-artifact@main
+        with:
+          name: androidBuild
+          path: example/export/android/bin/app/build/outputs/apk/debug
+          if-no-files-found: warn
+
+      - name: Build iOS
+        if: matrix.os == 'ios'
+        run: cd example && haxelib run lime build ios -nosign
+
+      - name: Create iOS IPA
+        if: matrix.os == 'ios'
+        run: cd example/export/ios/build/Release-iphoneos && mkdir Payload && mv *.app Payload && zip -r Sample.ipa Payload
+
+      - name: Upload iOS Artifact
+        if: matrix.os == 'ios'
+        uses: actions/upload-artifact@main
+        with:
+          name: iOSBuild
+          path: example/export/ios/build/Release-iphoneos/Sample.ipa
+          if-no-files-found: warn

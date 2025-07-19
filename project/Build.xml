@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xml>
+	<pragma once="true" />
+
+	<files id="haxe">
+		<compilerflag value="-I${haxelib:hxdr_libs}/project/lib/dr_libs" />
+	</files>
+
+	<files id="__main__">
+		<compilerflag value="-I${haxelib:hxdr_libs}/project/lib/dr_libs" />
+	</files>
+
+	<files id="dr_libs">
+		<compilerflag value="-I${haxelib:hxdr_libs}/project/lib/dr_libs" />
+
+		<file name="${haxelib:hxdr_libs}/project/src/dr_libs.c" />
+	</files>
+
+	<target id="haxe">
+		<section unless="linc_soloud">
+			<files id="dr_libs" />
+		</section>
+	</target>
+</xml>
